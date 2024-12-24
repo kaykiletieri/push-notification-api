@@ -1,19 +1,19 @@
 import { Exclude, Expose } from 'class-transformer';
 
 @Exclude()
-export class ClientResponseDto {
+export class ScopeResponseDto {
   @Expose()
   id: string;
 
   @Expose()
-  clientId: string;
+  name: string;
 
   @Expose()
-  description?: string;
+  description: string;
 
-  @Expose()
+  @Expose({ name: 'created_at' })
   createdAt: Date;
 
-  @Expose()
+  @Expose({ name: 'updated_at' })
   updatedAt: Date;
 }

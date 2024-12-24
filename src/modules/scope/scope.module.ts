@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
-import { ScopeController } from './controllers/scopte.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScopeService } from './services/scope.service';
+import { Scope } from './entities/scope.entity';
 
 @Module({
-  controllers: [ScopeController],
+  imports: [TypeOrmModule.forFeature([Scope])],
   providers: [ScopeService],
+  exports: [ScopeService],
 })
 export class ScopeModule {}
