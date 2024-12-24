@@ -1,6 +1,5 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToMany,
   CreateDateColumn,
@@ -40,7 +39,7 @@ export class Scope {
   updatedAt: Date;
 
   @BeforeInsert()
-  generateUUID() {
+  generateUUID(): void {
     if (!this.id) {
       this.id = uuidv4();
     }

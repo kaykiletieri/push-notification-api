@@ -25,15 +25,17 @@ import * as Joi from '@hapi/joi';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const isDevelopment = configService.get<string>('NODE_ENV') === 'development';
-    
+        const isDevelopment =
+          configService.get<string>('NODE_ENV') === 'development';
+
         return {
           type: 'postgres',
           host: configService.get<string>('DB_HOST'),
           port: configService.get<number>('DB_PORT') || 5432,
           username: configService.get<string>('DB_USER') || 'postgres',
           password: configService.get<string>('DB_PASSWORD'),
-          database: configService.get<string>('DB_DATABASE') || 'push_notification_db',
+          database:
+            configService.get<string>('DB_DATABASE') || 'push_notification_db',
           entities: [__dirname + '/**/*.entity{.ts,.js}'],
           migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
           migrationsTableName: 'migrations',
@@ -42,7 +44,7 @@ import * as Joi from '@hapi/joi';
           logging: isDevelopment,
         };
       },
-    }),    
+    }),
     ClientsModule,
     ScopeModule,
   ],

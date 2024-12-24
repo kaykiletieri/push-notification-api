@@ -3,27 +3,27 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
-  PrimaryGeneratedColumn,
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
   BeforeInsert,
   BeforeUpdate,
+  PrimaryColumn,
 } from 'typeorm';
 import { IsNotEmpty, IsString, IsOptional, IsUUID } from 'class-validator';
 import * as argon2 from 'argon2';
 import { v4 as uuidv4 } from 'uuid';
-import { Scope } from 'src/modules/scope/entities/scope.entity';
+import { Scope } from '../../scope/entities/scope.entity';
 
 @Entity('clients')
 export class Client {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn('uuid')
   @IsUUID()
   id: string;
 
   @Column({ unique: true, name: 'client_id' })
   @IsNotEmpty()
-  @IsString()
+  @IsUUID()
   clientId: string;
 
   @Column({ name: 'client_secret' })
@@ -56,15 +56,18 @@ export class Client {
   scopes: Scope[];
 
   @BeforeInsert()
-  generateUUID() {
+  generateUUID(): void {
     if (!this.id) {
       this.id = uuidv4();
+    }
+    if (!this.clientId) {
+      this.clientId = uuidv4();
     }
   }
 
   @BeforeInsert()
   @BeforeUpdate()
-  async hashClientSecret() {
+  async hashClientSecret(): Promise<void> {
     if (this.clientSecret) {
       this.clientSecret = await argon2.hash(this.clientSecret);
     }
