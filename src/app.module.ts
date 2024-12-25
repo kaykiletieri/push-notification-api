@@ -14,6 +14,7 @@ import * as Joi from '@hapi/joi';
           .valid('development', 'production', 'test')
           .default('development'),
         PORT: Joi.number().default(3000),
+        SERVICE_VERSION: Joi.string().default('1.0.0'),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().default(5432),
         DB_USER: Joi.string().default('postgres'),

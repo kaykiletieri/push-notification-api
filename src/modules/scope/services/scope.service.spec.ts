@@ -38,7 +38,7 @@ describe('ScopeService', () => {
             save: jest.fn(),
             create: jest.fn(),
             findAndCount: jest.fn(),
-            softRemove: jest.fn(),
+            delete: jest.fn(),
           },
         },
       ],
@@ -160,12 +160,12 @@ describe('ScopeService', () => {
   describe('delete', () => {
     it('should delete a scope', async () => {
       repository.findOne.mockResolvedValue(mockScope);
-      repository.softRemove.mockResolvedValue(mockScope);
+      repository.delete.mockResolvedValue({ affected: 1, raw: [] });
 
       await service.delete('123');
 
       expect(repository.findOne).toHaveBeenCalledWith({ where: { id: '123' } });
-      expect(repository.softRemove).toHaveBeenCalledWith(mockScope);
+      expect(repository.delete).toHaveBeenCalledWith({ id: '123' });
     });
 
     it('should throw NotFoundException if scope not found', async () => {

@@ -91,6 +91,11 @@ export class ScopeService {
         this.logger.error('Database query failed', error.stack);
         throw new Error('Failed to fetch scope from the database');
       }
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
       this.logger.error('Unexpected error occurred', error.stack);
       throw error;
     }
@@ -120,6 +125,11 @@ export class ScopeService {
         this.logger.error('Database query failed during update', error.stack);
         throw new Error('Failed to update scope in the database');
       }
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
       this.logger.error('Unexpected error occurred during update', error.stack);
       throw error;
     }
@@ -138,14 +148,19 @@ export class ScopeService {
         throw new NotFoundException(`Scope with ID ${id} not found`);
       }
 
-      await this.scopesRepository.softRemove(scope);
+      await this.scopesRepository.delete({ id });
 
-      this.logger.log(`Scope deleted successfully: ${id}`);
+      this.logger.log(`Deleted successfully: ${id}`);
     } catch (error) {
       if (error instanceof QueryFailedError) {
         this.logger.error('Database query failed during delete', error.stack);
         throw new Error('Failed to delete scope from the database');
       }
+
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+
       this.logger.error('Unexpected error occurred during delete', error.stack);
       throw error;
     }

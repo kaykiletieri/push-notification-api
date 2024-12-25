@@ -47,6 +47,7 @@ export class Client {
 
   @ManyToMany(() => Scope, (scope) => scope.clients, {
     cascade: ['insert', 'update'],
+    onDelete: 'CASCADE',
   })
   @JoinTable({
     name: 'client_scopes',

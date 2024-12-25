@@ -29,6 +29,7 @@ export class Scope {
 
   @ManyToMany(() => Client, (client) => client.scopes, {
     cascade: ['insert', 'update'],
+    onDelete: 'CASCADE',
   })
   clients: Client[];
 

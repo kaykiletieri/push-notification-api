@@ -61,6 +61,7 @@ describe('ClientsService', () => {
     const createDto: CreateClientDto = {
       clientSecret: 'example-secret',
       description: 'Example description',
+      scopeIds: [],
     };
 
     it('should create a client and generate clientId', async () => {
