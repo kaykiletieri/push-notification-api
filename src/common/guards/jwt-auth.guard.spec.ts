@@ -23,17 +23,23 @@ describe('JwtAuthGuard', () => {
 
   const mockExecutionContext = (
     authorizationHeader?: string,
+    isPublic: boolean = false,
   ): ExecutionContext => {
     const mockRequest = {
       headers: authorizationHeader
         ? { authorization: authorizationHeader }
         : {},
     } as Request & { user?: unknown };
+
     return {
       switchToHttp: () => ({
         getRequest: () => mockRequest,
       }),
-    } as ExecutionContext;
+      getHandler: jest.fn(),
+      getClass: jest.fn(),
+      // Mockando retorno do Reflector
+      getReflector: jest.fn(() => isPublic),
+    } as unknown as ExecutionContext;
   };
 
   beforeEach(async () => {
@@ -61,6 +67,7 @@ describe('JwtAuthGuard', () => {
 
   describe('canActivate', () => {
     it('should validate a valid token and attach payload to request.user', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       jwtService.verify.mockReturnValue(mockPayload);
 
       const context = mockExecutionContext(`Bearer ${validToken}`);
@@ -71,12 +78,22 @@ describe('JwtAuthGuard', () => {
       expect(jwtService.verify).toHaveBeenCalledWith(validToken);
     });
 
+    it('should allow access to public routes', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(true);
+
+      const context = mockExecutionContext();
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
     it('should throw UnauthorizedException if token is missing', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+
       const context = mockExecutionContext();
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if token is invalid', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       jwtService.verify.mockImplementation(() => {
         throw new Error('Invalid token');
       });
@@ -87,11 +104,15 @@ describe('JwtAuthGuard', () => {
     });
 
     it('should throw UnauthorizedException if authorization header is malformed', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+
       const context = mockExecutionContext('InvalidHeader');
       expect(() => guard.canActivate(context)).toThrow(UnauthorizedException);
     });
 
     it('should log a warning if authorization header is missing', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
+
       const context = mockExecutionContext();
       const loggerSpy = jest.spyOn(guard['logger'], 'warn');
 
@@ -100,6 +121,7 @@ describe('JwtAuthGuard', () => {
     });
 
     it('should log an error if token validation fails', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(false);
       jwtService.verify.mockImplementation(() => {
         throw new Error('Invalid token');
       });

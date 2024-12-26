@@ -20,15 +20,14 @@ export class JwtAuthGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean | Promise<boolean> {
-
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-        context.getHandler(),
-        context.getClass(),
-      ]);
-  
-      if (isPublic) {
-        return true;
-      }
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
 
     const request = context
       .switchToHttp()
