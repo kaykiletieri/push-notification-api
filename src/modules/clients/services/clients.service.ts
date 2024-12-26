@@ -62,9 +62,9 @@ export class ClientsService {
     limit: number;
   }> {
     this.logger.log('Fetching clients with pagination and relations');
-  
+
     const { page, limit } = paginationDto;
-  
+
     try {
       const [data, total] = await this.clientsRepository.findAndCount({
         skip: (page - 1) * limit,
@@ -72,14 +72,14 @@ export class ClientsService {
         order: { createdAt: 'DESC' },
         relations: ['scopes'], // Include related scopes
       });
-  
+
       const transformedData: ClientResponseDto[] = plainToInstance(
         ClientResponseDto,
         data,
       );
-  
+
       this.logger.debug(`Found ${total} clients, returning page ${page}`);
-  
+
       return {
         data: transformedData,
         total,
@@ -94,85 +94,85 @@ export class ClientsService {
       throw error;
     }
   }
-  
+
   async findOne(id: string): Promise<ClientResponseDto> {
     this.logger.log(`Fetching client with ID: ${id} and relations`);
-  
+
     try {
       const client: Client = await this.clientsRepository.findOne({
         where: { id },
         relations: ['scopes'],
       });
-  
+
       if (!client) {
         this.logger.warn(`Client with ID ${id} not found`);
         throw new NotFoundException(`Client with ID ${id} not found`);
       }
-  
+
       this.logger.log(`Client found: ${client.id}`);
-  
+
       return plainToInstance(ClientResponseDto, client);
     } catch (error) {
       if (error instanceof QueryFailedError) {
         this.logger.error('Database query failed', error.stack);
         throw new Error('Failed to fetch client from the database');
       }
-  
+
       if (error instanceof NotFoundException) {
         throw error;
       }
-  
+
       this.logger.error('Unexpected error occurred', error.stack);
       throw error;
     }
-  }  
+  }
 
   async update(id: string, data: UpdateClientDto): Promise<ClientResponseDto> {
     this.logger.log(`Updating client with ID: ${id}`);
-  
+
     try {
       const client: Client = await this.clientsRepository.findOne({
         where: { id },
         relations: ['scopes'],
       });
-  
+
       if (!client) {
         this.logger.warn(`Client with ID ${id} not found`);
         throw new NotFoundException(`Client with ID ${id} not found`);
       }
-  
+
       if (data.scopeIds && data.scopeIds.length > 0) {
         const scopes = await this.clientsRepository.manager
           .getRepository(Scope)
           .findBy({ id: In(data.scopeIds) });
-  
+
         if (scopes.length !== data.scopeIds.length) {
           throw new NotFoundException('One or more Scopes not found');
         }
-  
+
         client.scopes = scopes;
       }
-  
+
       Object.assign(client, data);
       const updatedClient: Client = await this.clientsRepository.save(client);
-  
+
       this.logger.log(`Client updated successfully: ${updatedClient.id}`);
-  
+
       return plainToInstance(ClientResponseDto, updatedClient);
     } catch (error) {
       if (error instanceof QueryFailedError) {
         this.logger.error('Database query failed during update', error.stack);
         throw new Error('Failed to update client in the database');
       }
-  
+
       if (error instanceof NotFoundException) {
         throw error;
       }
-  
+
       this.logger.error('Unexpected error occurred during update', error.stack);
       throw error;
     }
-  }  
+  }
 
   async delete(id: string): Promise<void> {
     this.logger.log(`Deleting client with ID: ${id}`);

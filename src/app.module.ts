@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ClientsModule } from './modules/clients/clients.module';
 import { ScopeModule } from './modules/scope/scope.module';
 import * as Joi from '@hapi/joi';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -15,6 +16,8 @@ import * as Joi from '@hapi/joi';
           .default('development'),
         PORT: Joi.number().default(3000),
         SERVICE_VERSION: Joi.string().default('1.0.0'),
+        JWT_SECRET: Joi.string().required(),
+        JWT_EXPIRATION_TIME: Joi.string().required(),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().default(5432),
         DB_USER: Joi.string().default('postgres'),
@@ -48,6 +51,7 @@ import * as Joi from '@hapi/joi';
     }),
     ClientsModule,
     ScopeModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
