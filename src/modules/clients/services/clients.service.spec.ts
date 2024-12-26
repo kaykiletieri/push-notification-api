@@ -5,7 +5,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../entities/client.entity';
 import { Scope } from '../../scope/entities/scope.entity';
 import { Logger, NotFoundException } from '@nestjs/common';
-import { CreateClientDto } from '../dto/create-client.dto';
 import { UpdateClientDto } from '../dto/update-client.dto';
 import { ClientResponseDto } from '../dto/client-response.dto';
 import { plainToInstance } from 'class-transformer';
@@ -17,7 +16,6 @@ jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 describe('ClientsService', () => {
   let service: ClientsService;
   let clientRepository: jest.Mocked<Repository<Client>>;
-  let scopeRepository: jest.Mocked<Repository<Scope>>;
 
   const validScopeId = '0e911447-3163-4e79-97f6-dba03a742029';
   const validScope: Scope = {
@@ -74,7 +72,6 @@ describe('ClientsService', () => {
 
     service = module.get<ClientsService>(ClientsService);
     clientRepository = module.get(getRepositoryToken(Client));
-    scopeRepository = module.get(getRepositoryToken(Scope));
   });
 
   describe('update', () => {

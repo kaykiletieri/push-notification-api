@@ -5,6 +5,9 @@ import { ClientsModule } from './modules/clients/clients.module';
 import { ScopeModule } from './modules/scope/scope.module';
 import * as Joi from '@hapi/joi';
 import { AuthModule } from './modules/auth/auth.module';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -54,6 +57,12 @@ import { AuthModule } from './modules/auth/auth.module';
     AuthModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+    JwtService,
+  ],
 })
 export class AppModule {}

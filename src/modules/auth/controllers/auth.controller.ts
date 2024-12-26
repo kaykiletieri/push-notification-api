@@ -20,6 +20,7 @@ import {
 import { AuthRequestDto } from '../dto/auth-request.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { AuthService } from '../services/auth.service';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -52,6 +53,7 @@ export class AuthController {
     status: HttpStatus.BAD_REQUEST,
     description: 'Invalid input',
   })
+  @Public()
   async generateTokenV1(
     @Body() authRequestDto: AuthRequestDto,
     @Query('expiration') expiration?: number,

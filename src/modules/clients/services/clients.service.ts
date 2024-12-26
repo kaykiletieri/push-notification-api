@@ -20,32 +20,32 @@ export class ClientsService {
 
   async create(data: CreateClientDto): Promise<ClientResponseDto> {
     this.logger.log('Creating a new client');
-  
+
     try {
       let scopes = [];
       if (Array.isArray(data.scopeIds) && data.scopeIds.length > 0) {
         scopes = await this.clientsRepository.manager
           .getRepository(Scope)
           .findBy({ id: In(data.scopeIds) });
-  
+
         if (!scopes || scopes.length !== data.scopeIds.length) {
           this.logger.warn('One or more Scopes not found');
           throw new NotFoundException('One or more Scopes not found');
         }
       }
-  
+
       const client: Client = this.clientsRepository.create({
         ...data,
         scopes,
       });
-  
+
       const savedClient: Client = await this.clientsRepository.save(client);
-  
+
       if (!savedClient || !savedClient.id) {
         this.logger.error('Failed to save client');
         throw new Error('Client creation failed');
       }
-  
+
       this.logger.log(`Client created successfully with ID: ${savedClient.id}`);
       return plainToInstance(ClientResponseDto, savedClient);
     } catch (error) {
@@ -53,7 +53,10 @@ export class ClientsService {
         this.logger.error('Database query failed during creation', error.stack);
         throw new Error('Failed to create client in the database');
       }
-      this.logger.error('Unexpected error occurred during creation', error.stack);
+      this.logger.error(
+        'Unexpected error occurred during creation',
+        error.stack,
+      );
       throw error;
     }
   }
@@ -132,38 +135,38 @@ export class ClientsService {
 
   async update(id: string, data: UpdateClientDto): Promise<ClientResponseDto> {
     this.logger.log(`Updating client with ID: ${id}`);
-  
+
     try {
       const client: Client = await this.clientsRepository.findOne({
         where: { id },
         relations: ['scopes'],
       });
-  
+
       if (!client) {
         this.logger.warn(`Client with ID ${id} not found`);
         throw new NotFoundException(`Client with ID ${id} not found`);
       }
-  
+
       if (Array.isArray(data.scopeIds) && data.scopeIds.length > 0) {
         const scopes = await this.clientsRepository.manager
           .getRepository(Scope)
           .findBy({ id: In(data.scopeIds) });
-  
+
         if (!scopes || scopes.length !== data.scopeIds.length) {
           throw new NotFoundException('One or more Scopes not found');
         }
-  
+
         client.scopes = scopes;
       }
-  
+
       Object.assign(client, data);
       const updatedClient: Client = await this.clientsRepository.save(client);
-  
+
       if (!updatedClient || !updatedClient.id) {
         this.logger.error('Failed to update client');
         throw new Error('Client update failed');
       }
-  
+
       this.logger.log(`Client updated successfully: ${updatedClient.id}`);
       return plainToInstance(ClientResponseDto, updatedClient);
     } catch (error) {
@@ -171,11 +174,11 @@ export class ClientsService {
         this.logger.error('Database query failed during update', error.stack);
         throw new Error('Failed to update client in the database');
       }
-  
+
       if (error instanceof NotFoundException) {
         throw error;
       }
-  
+
       this.logger.error('Unexpected error occurred during update', error.stack);
       throw error;
     }
