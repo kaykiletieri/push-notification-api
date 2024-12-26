@@ -1,5 +1,22 @@
-import { Controller, Post, Body, Query, HttpCode, HttpStatus, Version, BadRequestException, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody, ApiQuery } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  Query,
+  HttpCode,
+  HttpStatus,
+  Version,
+  BadRequestException,
+  Logger,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiConsumes,
+  ApiBody,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AuthRequestDto } from '../dto/auth-request.dto';
 import { AuthResponseDto } from '../dto/auth-response.dto';
 import { AuthService } from '../services/auth.service';
@@ -41,7 +58,9 @@ export class AuthController {
   ): Promise<AuthResponseDto> {
     const { grant_type, clientId, clientSecret, scopes } = authRequestDto;
 
-    this.logger.debug(`Received authentication request for clientId: ${clientId}`);
+    this.logger.debug(
+      `Received authentication request for clientId: ${clientId}`,
+    );
 
     if (grant_type !== 'client_credentials') {
       throw new BadRequestException(
@@ -51,8 +70,14 @@ export class AuthController {
 
     const normalizedScopes = scopes.split(',').map((scope) => scope.trim());
 
-    const client = await this.authService.validateClient(clientId, clientSecret);
-    const validScopes = await this.authService.validateScopes(client, normalizedScopes);
+    const client = await this.authService.validateClient(
+      clientId,
+      clientSecret,
+    );
+    const validScopes = await this.authService.validateScopes(
+      client,
+      normalizedScopes,
+    );
     const { token, expiresIn } = await this.authService.generateToken(
       client,
       validScopes,

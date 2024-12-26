@@ -32,5 +32,5 @@ export class AuthRequestDto {
   })
   @IsString()
   @IsNotEmpty()
-  scopes: string; 
+  scopes: string;
 }

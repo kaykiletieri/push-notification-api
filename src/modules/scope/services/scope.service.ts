@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { Scope } from '../entities/scope.entity';
@@ -21,11 +26,32 @@ export class ScopeService {
     this.logger.log('Creating a new scope');
 
     try {
+      const existingScope = await this.scopesRepository.findOne({
+        where: { name: data.name },
+      });
+
+      if (existingScope) {
+        this.logger.warn(`Scope with name "${data.name}" already exists`);
+        throw new BadRequestException(
+          `Scope with name "${data.name}" already exists`,
+        );
+      }
+
       const scope: Scope = this.scopesRepository.create(data);
       const savedScope: Scope = await this.scopesRepository.save(scope);
 
+      this.logger.log(`Scope created successfully with ID: ${savedScope.id}`);
       return plainToInstance(ScopeResponseDto, savedScope);
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+
+      if (error instanceof QueryFailedError) {
+        this.logger.error('Database query failed', error.stack);
+        throw new Error('Failed to create scope in the database');
+      }
+
       this.logger.error('Error while creating a scope', error.stack);
       throw error;
     }

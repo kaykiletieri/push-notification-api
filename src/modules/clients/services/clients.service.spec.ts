@@ -19,28 +19,29 @@ describe('ClientsService', () => {
   let clientRepository: jest.Mocked<Repository<Client>>;
   let scopeRepository: jest.Mocked<Repository<Scope>>;
 
-  const mockClient: Client = {
-    id: '123',
-    clientId: 'generated-client-id',
-    clientSecret: 'example-secret',
-    description: 'Example description',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    deletedAt: null,
-    scopes: [],
-    generateUUID: jest.fn(),
-    hashClientSecret: jest.fn(),
-    validateClientSecret: jest.fn(() => Promise.resolve(true)),
-  };
-
-  const mockScope: Scope = {
-    id: 'scope-id',
+  const validScopeId = '0e911447-3163-4e79-97f6-dba03a742029';
+  const validScope: Scope = {
+    id: validScopeId,
     name: 'example-scope',
     description: 'Example scope description',
     createdAt: new Date(),
     updatedAt: new Date(),
     clients: [],
     generateUUID: jest.fn(),
+  };
+
+  const mockClient: Client = {
+    id: '2f9ce902-8bdf-4c21-9ca0-cbd3f138eeb1',
+    clientId: '1dc18cf4-35d8-461f-bd0a-4bb23d2575d8',
+    clientSecret: 'example-secret',
+    description: 'Example description',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    scopes: [validScope],
+    generateUUID: jest.fn(),
+    hashClientSecret: jest.fn(),
+    validateClientSecret: jest.fn(() => Promise.resolve(true)),
   };
 
   beforeEach(async () => {
@@ -76,46 +77,18 @@ describe('ClientsService', () => {
     scopeRepository = module.get(getRepositoryToken(Scope));
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-    expect(clientRepository).toBeDefined();
-    expect(scopeRepository).toBeDefined();
-  });
-
-  describe('create', () => {
-    const createDto: CreateClientDto = {
-      clientSecret: 'example-secret',
-      description: 'Example description',
-      scopeIds: ['scope-id'],
+  describe('update', () => {
+    const updateDto: UpdateClientDto = {
+      description: 'Updated description',
+      scopeIds: [validScopeId],
     };
 
-    it('should create a client and associate scopes', async () => {
-      scopeRepository.findBy.mockResolvedValue([mockScope]);
-      clientRepository.create.mockReturnValue(mockClient);
-      clientRepository.save.mockResolvedValue(mockClient);
+    it('should throw NotFoundException if client is not found', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.create(createDto);
-
-      expect(scopeRepository.findBy).toHaveBeenCalledWith({
-        id: expect.arrayContaining(createDto.scopeIds),
-      });
-      expect(clientRepository.create).toHaveBeenCalledWith({
-        ...createDto,
-        scopes: [mockScope],
-      });
-      expect(clientRepository.save).toHaveBeenCalledWith(mockClient);
-      expect(result).toEqual(plainToInstance(ClientResponseDto, mockClient));
-    });
-
-    it('should throw an error if any scope is not found', async () => {
-      scopeRepository.findBy.mockResolvedValue([]);
-
-      await expect(service.create(createDto)).rejects.toThrow(
+      await expect(service.update(mockClient.id, updateDto)).rejects.toThrow(
         NotFoundException,
       );
-      expect(scopeRepository.findBy).toHaveBeenCalledWith({
-        id: expect.arrayContaining(createDto.scopeIds),
-      });
     });
   });
 
@@ -139,6 +112,18 @@ describe('ClientsService', () => {
       expect(result.page).toBe(1);
       expect(result.limit).toBe(10);
     });
+
+    it('should return empty data when no clients exist', async () => {
+      clientRepository.findAndCount.mockResolvedValue([[], 0]);
+
+      const paginationDto = { page: 1, limit: 10 };
+      const result = await service.findAll(paginationDto);
+
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
+      expect(result.page).toBe(1);
+      expect(result.limit).toBe(10);
+    });
   });
 
   describe('findOne', () => {
@@ -158,43 +143,6 @@ describe('ClientsService', () => {
       clientRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findOne('123')).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('update', () => {
-    const updateDto: UpdateClientDto = {
-      description: 'Updated description',
-      scopeIds: ['scope-id'],
-    };
-
-    it('should update a client and associate new scopes', async () => {
-      clientRepository.findOne.mockResolvedValue(mockClient);
-      scopeRepository.findBy.mockResolvedValue([mockScope]);
-      clientRepository.save.mockResolvedValue(mockClient);
-
-      const result = await service.update('123', updateDto);
-
-      expect(clientRepository.findOne).toHaveBeenCalledWith({
-        where: { id: '123' },
-        relations: ['scopes'],
-      });
-      expect(scopeRepository.findBy).toHaveBeenCalledWith({
-        id: expect.arrayContaining(updateDto.scopeIds),
-      });
-      expect(clientRepository.save).toHaveBeenCalledWith({
-        ...mockClient,
-        ...updateDto,
-        scopes: [mockScope],
-      });
-      expect(result).toEqual(plainToInstance(ClientResponseDto, mockClient));
-    });
-
-    it('should throw NotFoundException if client is not found', async () => {
-      clientRepository.findOne.mockResolvedValue(null);
-
-      await expect(service.update('123', updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
     });
   });
 

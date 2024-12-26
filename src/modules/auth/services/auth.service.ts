@@ -45,6 +45,11 @@ export class AuthService {
       this.logger.log(`Client validated successfully: ${clientId}`);
       return client;
     } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        this.logger.warn('Error during client validation', error.stack);
+        throw error;
+      }
+
       this.logger.error('Error during client validation', error.stack);
       throw error;
     }
@@ -52,23 +57,23 @@ export class AuthService {
 
   async validateScopes(
     client: Client,
-    requestedScopes: any,
+    requestedScopes: string[],
   ): Promise<string[]> {
     this.logger.log(
       `Validating requested scopes for client ID: ${client.clientId}`,
     );
-  
+
     try {
       if (!Array.isArray(requestedScopes)) {
         throw new BadRequestException('Scopes must be an array of strings');
       }
-  
+
       const assignedScopes = client.scopes.map((scope) => scope.name);
-  
+
       const validScopes = requestedScopes.filter((scope) =>
         assignedScopes.includes(scope),
       );
-  
+
       if (validScopes.length !== requestedScopes.length) {
         this.logger.warn(
           `Client ${client.clientId} does not have access to all requested scopes`,
@@ -77,12 +82,17 @@ export class AuthService {
           'Some requested scopes are not valid for this client',
         );
       }
-  
+
       this.logger.log(
         `Scopes validated successfully for client ID: ${client.clientId}`,
       );
       return validScopes;
     } catch (error) {
+      if (error instanceof BadRequestException) {
+        this.logger.warn('Error during scope validation', error.stack);
+        throw error;
+      }
+
       this.logger.error('Error during scope validation', error.stack);
       throw error;
     }
@@ -98,7 +108,7 @@ export class AuthService {
         ', ',
       )}]`,
     );
-  
+
     try {
       const payload = {
         clientId: client.clientId,
@@ -106,7 +116,7 @@ export class AuthService {
       };
 
       let expiresIn: number;
-  
+
       if (expiration) {
         if (typeof expiration === 'string') {
           expiresIn = parseInt(expiration, 10);
@@ -123,9 +133,9 @@ export class AuthService {
       } else {
         expiresIn = parseInt(process.env.JWT_EXPIRATION_TIME || '3600', 10);
       }
-  
+
       const token = this.jwtService.sign(payload, { expiresIn });
-  
+
       this.logger.log(
         `Token generated successfully for client ID: ${client.clientId} with expiration: ${expiresIn} seconds`,
       );
@@ -135,5 +145,4 @@ export class AuthService {
       throw error;
     }
   }
-  
 }
