@@ -101,7 +101,7 @@ export class ClientsService {
     try {
       const client: Client = await this.clientsRepository.findOne({
         where: { id },
-        relations: ['scopes'], // Include related scopes
+        relations: ['scopes'],
       });
   
       if (!client) {
@@ -129,37 +129,50 @@ export class ClientsService {
 
   async update(id: string, data: UpdateClientDto): Promise<ClientResponseDto> {
     this.logger.log(`Updating client with ID: ${id}`);
-
+  
     try {
       const client: Client = await this.clientsRepository.findOne({
         where: { id },
+        relations: ['scopes'],
       });
-
+  
       if (!client) {
         this.logger.warn(`Client with ID ${id} not found`);
         throw new NotFoundException(`Client with ID ${id} not found`);
       }
-
+  
+      if (data.scopeIds && data.scopeIds.length > 0) {
+        const scopes = await this.clientsRepository.manager
+          .getRepository(Scope)
+          .findBy({ id: In(data.scopeIds) });
+  
+        if (scopes.length !== data.scopeIds.length) {
+          throw new NotFoundException('One or more Scopes not found');
+        }
+  
+        client.scopes = scopes;
+      }
+  
       Object.assign(client, data);
       const updatedClient: Client = await this.clientsRepository.save(client);
-
+  
       this.logger.log(`Client updated successfully: ${updatedClient.id}`);
-
+  
       return plainToInstance(ClientResponseDto, updatedClient);
     } catch (error) {
       if (error instanceof QueryFailedError) {
         this.logger.error('Database query failed during update', error.stack);
         throw new Error('Failed to update client in the database');
       }
-
+  
       if (error instanceof NotFoundException) {
         throw error;
       }
-
+  
       this.logger.error('Unexpected error occurred during update', error.stack);
       throw error;
     }
-  }
+  }  
 
   async delete(id: string): Promise<void> {
     this.logger.log(`Deleting client with ID: ${id}`);

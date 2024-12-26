@@ -6,6 +6,7 @@ import { UpdateClientDto } from '../dto/update-client.dto';
 import { ClientResponseDto } from '../dto/client-response.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 import { NotFoundException } from '@nestjs/common';
+import { ScopeResponseDto } from '../../scope/dto/scope-response.dto';
 
 describe('ClientsController', () => {
   let controller: ClientsController;
@@ -17,7 +18,15 @@ describe('ClientsController', () => {
     description: 'Example client',
     createdAt: new Date(),
     updatedAt: new Date(),
-    scopes: ['scope1', 'scope2'],
+    scopes: [
+      {
+        id: 'f5e6f5f7-6e2b-4e2f-8b5d-0e3a2c1b4e2f',
+        name: 'example-scope',
+        description: 'Example description',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as ScopeResponseDto,
+    ],
   };
 
   beforeEach(async () => {

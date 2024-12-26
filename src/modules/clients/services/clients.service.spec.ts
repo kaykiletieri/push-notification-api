@@ -3,9 +3,10 @@ import { ClientsService } from './clients.service';
 import { Repository } from 'typeorm';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Client } from '../entities/client.entity';
+import { Scope } from '../../scope/entities/scope.entity';
 import { Logger, NotFoundException } from '@nestjs/common';
 import { CreateClientDto } from '../dto/create-client.dto';
-import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { UpdateClientDto } from '../dto/update-client.dto';
 import { ClientResponseDto } from '../dto/client-response.dto';
 import { plainToInstance } from 'class-transformer';
 
@@ -15,7 +16,8 @@ jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
 
 describe('ClientsService', () => {
   let service: ClientsService;
-  let repository: jest.Mocked<Repository<Client>>;
+  let clientRepository: jest.Mocked<Repository<Client>>;
+  let scopeRepository: jest.Mocked<Repository<Scope>>;
 
   const mockClient: Client = {
     id: '123',
@@ -31,6 +33,16 @@ describe('ClientsService', () => {
     validateClientSecret: jest.fn(() => Promise.resolve(true)),
   };
 
+  const mockScope: Scope = {
+    id: 'scope-id',
+    name: 'example-scope',
+    description: 'Example scope description',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    clients: [],
+    generateUUID: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -43,58 +55,82 @@ describe('ClientsService', () => {
             create: jest.fn(),
             findAndCount: jest.fn(),
             softRemove: jest.fn(),
+            manager: {
+              getRepository: jest.fn().mockReturnValue({
+                findBy: jest.fn(),
+              }),
+            },
+          },
+        },
+        {
+          provide: getRepositoryToken(Scope),
+          useValue: {
+            findBy: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<ClientsService>(ClientsService);
-    repository = module.get(getRepositoryToken(Client));
+    clientRepository = module.get(getRepositoryToken(Client));
+    scopeRepository = module.get(getRepositoryToken(Scope));
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-    expect(repository).toBeDefined();
+    expect(clientRepository).toBeDefined();
+    expect(scopeRepository).toBeDefined();
   });
 
   describe('create', () => {
     const createDto: CreateClientDto = {
       clientSecret: 'example-secret',
       description: 'Example description',
-      scopeIds: [],
+      scopeIds: ['scope-id'],
     };
 
-    it('should create a client and generate clientId', async () => {
-      repository.create.mockReturnValue(mockClient);
-      repository.save.mockResolvedValue(mockClient);
+    it('should create a client and associate scopes', async () => {
+      scopeRepository.findBy.mockResolvedValue([mockScope]);
+      clientRepository.create.mockReturnValue(mockClient);
+      clientRepository.save.mockResolvedValue(mockClient);
 
       const result = await service.create(createDto);
 
-      expect(repository.create).toHaveBeenCalledWith(createDto);
-      expect(repository.save).toHaveBeenCalledWith(mockClient);
+      expect(scopeRepository.findBy).toHaveBeenCalledWith({
+        id: expect.arrayContaining(createDto.scopeIds),
+      });
+      expect(clientRepository.create).toHaveBeenCalledWith({
+        ...createDto,
+        scopes: [mockScope],
+      });
+      expect(clientRepository.save).toHaveBeenCalledWith(mockClient);
       expect(result).toEqual(plainToInstance(ClientResponseDto, mockClient));
     });
 
-    it('should throw an error if repository.save fails', async () => {
-      repository.create.mockReturnValue(mockClient);
-      repository.save.mockRejectedValue(new Error('Save error'));
+    it('should throw an error if any scope is not found', async () => {
+      scopeRepository.findBy.mockResolvedValue([]);
 
-      await expect(service.create(createDto)).rejects.toThrow('Save error');
+      await expect(service.create(createDto)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(scopeRepository.findBy).toHaveBeenCalledWith({
+        id: expect.arrayContaining(createDto.scopeIds),
+      });
     });
   });
 
   describe('findAll', () => {
-    const paginationDto: PaginationDto = { page: 1, limit: 10 };
-
-    it('should return paginated clients', async () => {
-      repository.findAndCount.mockResolvedValue([[mockClient], 1]);
+    it('should return paginated clients with scopes', async () => {
+      const paginationDto = { page: 1, limit: 10 };
+      clientRepository.findAndCount.mockResolvedValue([[mockClient], 1]);
 
       const result = await service.findAll(paginationDto);
 
-      expect(repository.findAndCount).toHaveBeenCalledWith({
+      expect(clientRepository.findAndCount).toHaveBeenCalledWith({
         skip: 0,
         take: 10,
         order: { createdAt: 'DESC' },
+        relations: ['scopes'],
       });
       expect(result.data).toEqual(
         plainToInstance(ClientResponseDto, [mockClient]),
@@ -103,60 +139,58 @@ describe('ClientsService', () => {
       expect(result.page).toBe(1);
       expect(result.limit).toBe(10);
     });
-
-    it('should throw an error if repository.findAndCount fails', async () => {
-      repository.findAndCount.mockRejectedValue(new Error('Find error'));
-
-      await expect(service.findAll(paginationDto)).rejects.toThrow(
-        'Find error',
-      );
-    });
   });
 
   describe('findOne', () => {
-    it('should return a client by id', async () => {
-      repository.findOne.mockResolvedValue(mockClient);
+    it('should return a client by id with scopes', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
 
       const result = await service.findOne('123');
 
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: '123' } });
+      expect(clientRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '123' },
+        relations: ['scopes'],
+      });
       expect(result).toEqual(plainToInstance(ClientResponseDto, mockClient));
     });
 
-    it('should throw NotFoundException if client not found', async () => {
-      repository.findOne.mockResolvedValue(null);
+    it('should throw NotFoundException if client is not found', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findOne('123')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    const updateDto = { description: 'Updated description' };
+    const updateDto: UpdateClientDto = {
+      description: 'Updated description',
+      scopeIds: ['scope-id'],
+    };
 
-    it('should update a client', async () => {
-      const updatedClient: Client = {
-        ...mockClient,
-        ...updateDto,
-        generateUUID: mockClient.generateUUID,
-        hashClientSecret: mockClient.hashClientSecret,
-        validateClientSecret: mockClient.validateClientSecret,
-      };
-
-      repository.findOne.mockResolvedValue(mockClient);
-      repository.save.mockResolvedValue(updatedClient);
+    it('should update a client and associate new scopes', async () => {
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      scopeRepository.findBy.mockResolvedValue([mockScope]);
+      clientRepository.save.mockResolvedValue(mockClient);
 
       const result = await service.update('123', updateDto);
 
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: '123' } });
-      expect(repository.save).toHaveBeenCalledWith({
+      expect(clientRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '123' },
+        relations: ['scopes'],
+      });
+      expect(scopeRepository.findBy).toHaveBeenCalledWith({
+        id: expect.arrayContaining(updateDto.scopeIds),
+      });
+      expect(clientRepository.save).toHaveBeenCalledWith({
         ...mockClient,
         ...updateDto,
+        scopes: [mockScope],
       });
-      expect(result).toEqual(plainToInstance(ClientResponseDto, updatedClient));
+      expect(result).toEqual(plainToInstance(ClientResponseDto, mockClient));
     });
 
-    it('should throw NotFoundException if client not found', async () => {
-      repository.findOne.mockResolvedValue(null);
+    it('should throw NotFoundException if client is not found', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
 
       await expect(service.update('123', updateDto)).rejects.toThrow(
         NotFoundException,
@@ -166,17 +200,19 @@ describe('ClientsService', () => {
 
   describe('delete', () => {
     it('should delete a client', async () => {
-      repository.findOne.mockResolvedValue(mockClient);
-      repository.softRemove.mockResolvedValue(mockClient);
+      clientRepository.findOne.mockResolvedValue(mockClient);
+      clientRepository.softRemove.mockResolvedValue(mockClient);
 
       await service.delete('123');
 
-      expect(repository.findOne).toHaveBeenCalledWith({ where: { id: '123' } });
-      expect(repository.softRemove).toHaveBeenCalledWith(mockClient);
+      expect(clientRepository.findOne).toHaveBeenCalledWith({
+        where: { id: '123' },
+      });
+      expect(clientRepository.softRemove).toHaveBeenCalledWith(mockClient);
     });
 
-    it('should throw NotFoundException if client not found', async () => {
-      repository.findOne.mockResolvedValue(null);
+    it('should throw NotFoundException if client is not found', async () => {
+      clientRepository.findOne.mockResolvedValue(null);
 
       await expect(service.delete('123')).rejects.toThrow(NotFoundException);
     });

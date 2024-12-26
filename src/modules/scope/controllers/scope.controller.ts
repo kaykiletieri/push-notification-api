@@ -26,7 +26,7 @@ import { ScopeResponseDto } from '../dto/scope-response.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
 
 @ApiTags('Scopes')
-@Controller('scopes')
+@Controller('scope')
 export class ScopesController {
   constructor(private readonly scopeService: ScopeService) {}
 

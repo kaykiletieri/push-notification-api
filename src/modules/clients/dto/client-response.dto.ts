@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Exclude, Expose, Type } from 'class-transformer';
-import { ScopeResponseDto } from 'src/modules/scope/dto/scope-response.dto';
+import { ScopeResponseDto } from '../../scope/dto/scope-response.dto';
 
 @Exclude()
 export class ClientResponseDto {
