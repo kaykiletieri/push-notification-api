@@ -24,6 +24,7 @@ import { CreateClientDto } from '../dto/create-client.dto';
 import { UpdateClientDto } from '../dto/update-client.dto';
 import { ClientResponseDto } from '../dto/client-response.dto';
 import { PaginationDto } from '../../../common/dto/pagination.dto';
+import { Public } from 'src/common/decorators/public.decorator';
 
 @ApiTags('Clients')
 @Controller('clients')
@@ -50,6 +51,7 @@ export class ClientsController {
   }
 
   @Get()
+  @Public()
   @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get all clients with pagination' })
